@@ -1,21 +1,7 @@
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTIBILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-
 bl_info = {
     "name": "Remove Keyframs",
     "author": "Se17",
-    "version": (0, 1),
+    "version": (1, 0),
     "blender": (5, 0, 1),
     "description": "選択した複数のオブジェクトのスケールのキーフレームをクリアする",
     "warning": "まだ開発途中のものです",
@@ -26,24 +12,60 @@ bl_info = {
 import bpy
 
 
-class Test_message(bpy.types.Operator): 
+class TestMessage(bpy.types.Operator): 
     bl_idname = "object.test_message"
     bl_label = "アドオンの使い方"
-    bl_options = {'REGISTER'}
+    bl_options = {'REGISTER', 'UNDO'}
     bl_description = "簡易的な説明を表示"
+
 
     def execute(self, context):
         self.report({'INFO'}, "選択しているオブジェクトのキーフレームを削除するアドオンです")
         return {'FINISHED'}
 
 
-class All_Remove_Keyframs(bpy.types.Operator):
-    bl_idname = "object.all_remove_keyframs"
-    bl_label = "選択したオブジェクトのスケールのキーフレームをクリア"
+
+class NowRemoveKeyframs(bpy.types.Operator):
+    bl_idname = "object.now_remove_keyframs"
+    bl_label = "現在のキーフレームの削除"
     bl_options = {'REGISTER', 'UNDO'}
-    bl_description = "複数のオブジェクトのすべてのスケールのキーフレームを一斉にクリアする"
+    bl_description = "選択中のオブジェクトの、現在のキーフレームを一斉に削除する"
+
 
     def execute(self, context):
+        # 現在のキーフレームを取得
+        frame_now = bpy.context.scene.frame_current
+
+        # 選択中のオブジェクトがない場合、処理をキャンセル
+        if len(context.selected_objects) <= 0:
+            self.report({'ERROR'}, "オブジェクトを1つ以上、選んでください")
+            return {'CANCELLED'}
+    
+        for obj in bpy.context.selected_objects:
+            if obj.animation_data is not None:
+                if obj.animation_data.action is not None:
+                    paths = ['location', 'rotation_euler', 'scale']
+                    for p in paths:
+                        obj.keyframe_delete(data_path=p, frame=frame_now)
+                else:
+                    self.report({'ERROR'}, f"オブジェクト{obj.name}にキーフレームのリンクがありません")
+            else:
+                self.report({'ERROR'}, f"オブジェクト{obj.name}にアニメーションデータのリンクがありません")
+
+        self.report({'INFO'}, "現在のキーフレームの削除完了")
+        return{'FINISHED'}
+
+
+
+class AllRemoveKeyframs(bpy.types.Operator):
+    bl_idname = "object.all_remove_keyframs"
+    bl_label = "キーフレーム全削除"
+    bl_options = {'REGISTER', 'UNDO'}
+    bl_description = "選択中のオブジェクトの、すべてのキーフレームを一斉に削除する"
+
+    
+    def execute(self, context):
+        # 選択中のオブジェクトがない場合、処理をキャンセル
         if len(context.selected_objects) <= 0:
             self.report({'ERROR'}, "オブジェクトを1つ以上、選んでください")
             return {'CANCELLED'}
@@ -61,7 +83,7 @@ class All_Remove_Keyframs(bpy.types.Operator):
         return{'FINISHED'}
     
 
-class Panel_button(bpy.types.Panel): 
+class PanelUI(bpy.types.Panel): 
     bl_label = "キーフレームを削除しよう"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -69,14 +91,16 @@ class Panel_button(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator(Test_message.bl_idname, text = "アドオンの説明")
-        layout.operator(All_Remove_Keyframs.bl_idname, text = "キーフレーム全削除")
+        layout.operator(TestMessage.bl_idname, text = "アドオンの説明")
+        layout.operator(NowRemoveKeyframs.bl_idname, text = "現在のキーフレームを削除")
+        layout.operator(AllRemoveKeyframs.bl_idname, text = "キーフレーム全削除")
 
     
 classes = [
-    Test_message,
-    All_Remove_Keyframs,
-    Panel_button,
+    TestMessage,
+    NowRemoveKeyframs,
+    AllRemoveKeyframs,
+    PanelUI,
 ]
 
     
