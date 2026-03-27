@@ -1,9 +1,9 @@
 bl_info = {
     "name": "Remove Keyframs",
     "author": "Se17",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (5, 0, 1),
-    "description": "選択した複数のオブジェクトのスケールのキーフレームをクリアする",
+    "description": "選択した複数のオブジェクトのキーフレームを削除する",
     "warning": "まだ開発途中のものです",
     "support": "TESTING",
     "category": "Object",
@@ -33,24 +33,21 @@ class NowRemoveKeyframs(bpy.types.Operator):
 
 
     def execute(self, context):
-        # 現在のキーフレームを取得
-        frame_now = bpy.context.scene.frame_current
-
-        # 選択中のオブジェクトがない場合、処理をキャンセル
         if len(context.selected_objects) <= 0:
             self.report({'ERROR'}, "オブジェクトを1つ以上、選んでください")
             return {'CANCELLED'}
     
         for obj in bpy.context.selected_objects:
-            if obj.animation_data is not None:
-                if obj.animation_data.action is not None:
-                    paths = ['location', 'rotation_euler', 'scale']
-                    for p in paths:
-                        obj.keyframe_delete(data_path=p, frame=frame_now)
-                else:
-                    self.report({'ERROR'}, f"オブジェクト{obj.name}にキーフレームのリンクがありません")
-            else:
+            if obj.animation_data is None:
                 self.report({'ERROR'}, f"オブジェクト{obj.name}にアニメーションデータのリンクがありません")
+                continue
+
+            if obj.animation_data.action is None:
+                self.report({'ERROR'}, f"オブジェクト{obj.name}にキーフレームのリンクがありません")
+                continue
+
+            bpy.ops.anim.keyframe_delete_v3d()
+
 
         self.report({'INFO'}, "現在のキーフレームの削除完了")
         return{'FINISHED'}
@@ -65,19 +62,21 @@ class AllRemoveKeyframs(bpy.types.Operator):
 
     
     def execute(self, context):
-        # 選択中のオブジェクトがない場合、処理をキャンセル
         if len(context.selected_objects) <= 0:
             self.report({'ERROR'}, "オブジェクトを1つ以上、選んでください")
             return {'CANCELLED'}
     
         for obj in bpy.context.selected_objects:
-            if obj.animation_data is not None:
-                if obj.animation_data.action is not None:
-                    bpy.data.actions.remove(obj.animation_data.action, do_unlink=True)
-                else:
-                    self.report({'ERROR'}, f"オブジェクト{obj.name}にキーフレームのリンクがありません")
-            else:
+            if obj.animation_data is None:
                 self.report({'ERROR'}, f"オブジェクト{obj.name}にアニメーションデータのリンクがありません")
+                continue
+
+            if obj.animation_data.action is None:
+                self.report({'ERROR'}, f"オブジェクト{obj.name}にキーフレームのリンクがありません")
+                continue
+
+            bpy.ops.anim.keyframe_clear_v3d()
+
 
         self.report({'INFO'}, "キーフレームの全削除完了")
         return{'FINISHED'}
